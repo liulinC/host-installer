@@ -94,12 +94,12 @@ def ifup(interface):
     device, vlan = splitInterfaceVlan(interface)
     assert device in getNetifList()
     interface_up[interface] = True
-    return util.runCmd2(['ifup', interface])
+    return util.runCmd2(['networkctl', 'up', interface])
 
 def ifdown(interface):
     if interface in interface_up:
         del interface_up[interface]
-    return util.runCmd2(['ifdown', interface])
+    return util.runCmd2(['networkctl', 'down', interface])
 
 def ipaddr(interface):
     rc, out = util.runCmd2(['ip', 'addr', 'show', interface], with_stdout=True)
