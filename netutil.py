@@ -64,7 +64,7 @@ def getNetifList(include_vlan=False):
 
 def writeNetInterfaceFiles(configuration):
     for iface in configuration:
-        configuration[iface].writeRHStyleInterface(iface)
+        configuration[iface].writeSystemdNetworkdConfig(iface)
 
 # writes DNS server entries to a resolver file given a network configuration object
 # list
