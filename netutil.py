@@ -85,9 +85,11 @@ def writeResolverFile(configuration, filename):
 
 interface_up = {}
 
-def restartSystemdNetworkdService():
+def restartSystemdNetworkdService(timeout=5):
     """ Restart systemd-networkd service"""
     util.runCmd2(["systemctl", "restart", "systemd-networkd"])
+    # systemd return immediately, wait until network is up
+    return util.runCmd2(["/usr/lib/systemd/systemd-networkd-wait-online", f"--timeout={timeout}"])
 
 # simple wrapper for calling the local ifup script:
 def splitInterfaceVlan(interface):
