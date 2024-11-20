@@ -170,7 +170,7 @@ class NetInterface:
         # VLAN should be configured After hosting interface, getNetifList ensured that
         if os.path.exists(iface_network_path):
             LOG.warning(f"Overiding existing configuration: {iface_network_path}")
-        with open(iface_network_path, encoding="utf-8") as f:
+        with open(iface_network_path, "w", encoding="utf-8") as f:
             f.write(config)
 
         if self.vlan:
@@ -182,7 +182,7 @@ class NetInterface:
                            "[VLAN]", "Id={self.vlan}", ""]
             netdev_conf = "\n".join(netdev_conf)
             netdev_conf_path = os.path.join(sysd_netd_path, f"{iface_vlan}.netdev")
-            with open(netdev_conf_path, encoding="utf-8") as f:
+            with open(netdev_conf_path, "w", encoding="utf-8") as f:
                 f.write(netdev_conf)
 
             hosting_iface_network_path = os.path.join(sysd_netd_path, f"{iface}.network")
@@ -195,7 +195,7 @@ class NetInterface:
                 LOG.info("Found vlan {iface_vlan} with unconfigured hosting interface")
                 hosting_conf = "\n".join(["[Match]", "Name={iface}", "",
                                           "[Network]", f"VLAN={iface_vlan}", ""])
-                with open(hosting_iface_network_path, encoding="utf-8") as f:
+                with open(hosting_iface_network_path, "w", encoding="utf-8") as f:
                     f.write(hosting_conf)
 
     def waitUntilUp(self, iface):
