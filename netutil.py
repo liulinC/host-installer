@@ -7,6 +7,7 @@ import re
 import subprocess
 import time
 import errno
+import backoff
 from xcp import logger
 from xcp.net.biosdevname import all_devices_all_names
 from socket import inet_ntoa
@@ -116,8 +117,10 @@ def ipaddr(interface):
             return m.group(1)
     return None
 
-# work out if an interface is up:
+# Check every interval seconds, up to max_time seconds
+@backoff.on_predicate(backoff.constant, interval=0.5, max_time=5)
 def interfaceUp(interface):
+# work out if an interface is up:
     rc, out = util.runCmd2(['ip', 'addr', 'show', interface], with_stdout=True)
     if rc != 0:
         return False
