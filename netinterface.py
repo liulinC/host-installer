@@ -150,7 +150,7 @@ class NetInterface:
         """Write a systemd-networkd configuration for this interface"""
         assert self.modev6 is None
         assert self.mode
-        sysd_netd_path = "/etc/systemd/nework"
+        sysd_netd_path = "/etc/systemd/network"
         iface_vlan = self.getInterfaceName(iface)
 
         LOG.debug(f"Configuring {iface} with systemd-networkd")
