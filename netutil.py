@@ -84,6 +84,10 @@ def writeResolverFile(configuration, filename):
 
 interface_up = {}
 
+def restartSystemdNetworkdService():
+    """ Restart systemd-networkd service"""
+    util.runCmd2(["systemctl", "restart", "systemd-networkd"])
+
 # simple wrapper for calling the local ifup script:
 def splitInterfaceVlan(interface):
     if "." in interface:
