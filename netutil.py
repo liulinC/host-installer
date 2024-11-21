@@ -119,8 +119,8 @@ def ipaddr(interface):
             return m.group(1)
     return None
 
-# Check every interval seconds, up to max_time seconds
 @backoff.on_predicate(backoff.constant, interval=0.5, max_time=5)
+# Check every interval seconds, up to max_time seconds
 def interfaceUp(interface):
 # work out if an interface is up:
     rc, out = util.runCmd2(['ip', 'addr', 'show', interface], with_stdout=True)
