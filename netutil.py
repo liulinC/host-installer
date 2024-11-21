@@ -12,6 +12,7 @@ from xcp import logger
 from xcp.net.biosdevname import all_devices_all_names
 from socket import inet_ntoa
 from struct import pack
+import time
 
 class NIC:
     def __init__(self, nic_dict):
@@ -88,6 +89,7 @@ interface_up = {}
 def restartSystemdNetworkdService(timeout=5):
     """ Restart systemd-networkd service"""
     util.runCmd2(["systemctl", "restart", "systemd-networkd"])
+    time.sleep(10)
     # systemd return immediately, wait until network is up
     return util.runCmd2(["/usr/lib/systemd/systemd-networkd-wait-online", f"--timeout={timeout}"])
 
