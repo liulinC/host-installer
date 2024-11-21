@@ -86,10 +86,9 @@ def writeResolverFile(configuration, filename):
 
 interface_up = {}
 
-def restartSystemdNetworkdService(timeout=5):
+def restartSystemdNetworkdService(timeout=20):
     """ Restart systemd-networkd service"""
     util.runCmd2(["systemctl", "restart", "systemd-networkd"])
-    time.sleep(10)
     # systemd return immediately, wait until network is up
     return util.runCmd2(["/usr/lib/systemd/systemd-networkd-wait-online", f"--timeout={timeout}"])
 
