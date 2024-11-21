@@ -90,7 +90,10 @@ def restartSystemdNetworkdService(timeout=20):
     """ Restart systemd-networkd service"""
     util.runCmd2(["systemctl", "restart", "systemd-networkd"])
     # systemd return immediately, wait until network is up
-    return util.runCmd2(["/usr/lib/systemd/systemd-networkd-wait-online", f"--timeout={timeout}"])
+    ret = util.runCmd2(["/usr/lib/systemd/systemd-networkd-wait-online", f"--timeout={timeout}"])
+    if ret:
+        LOG.error(f"Timeout {timeout} waiting for network online")
+    return ret
 
 # simple wrapper for calling the local ifup script:
 def splitInterfaceVlan(interface):
