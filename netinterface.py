@@ -179,7 +179,7 @@ class NetInterface:
             # - Set VLAN in [Network] section of hosting interface
 
             netdev_conf = ["[NetDev]", f"Name={iface_vlan}", "Kind=vlan", "",
-                           "[VLAN]", "Id={self.vlan}", ""]
+                           "[VLAN]", f"Id={self.vlan}", ""]
             netdev_conf = "\n".join(netdev_conf)
             netdev_conf_path = os.path.join(sysd_netd_path, f"{iface_vlan}.netdev")
             with open(netdev_conf_path, "w", encoding="utf-8") as f:
@@ -193,7 +193,7 @@ class NetInterface:
             else:
                 # The hosting interface just used to host the vlan
                 LOG.info("Found vlan {iface_vlan} with unconfigured hosting interface")
-                hosting_conf = "\n".join(["[Match]", "Name={iface}", "",
+                hosting_conf = "\n".join(["[Match]", f"Name={iface}", "",
                                           "[Network]", f"VLAN={iface_vlan}", ""])
                 with open(hosting_iface_network_path, "w", encoding="utf-8") as f:
                     f.write(hosting_conf)
