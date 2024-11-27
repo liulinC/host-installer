@@ -7,6 +7,7 @@ import subprocess
 import datetime
 import re
 import tempfile
+from pathlib import Path
 
 import repository
 import generalui
@@ -185,8 +186,7 @@ def getFinalisationSequence(ans):
                                'branding', 'net-admin-configuration', 'host-config', 'install-type'), []),
         Task(writeXencommons, A(ans, 'control-domain-uuid', 'mounts'), []),
         Task(configureISCSI, A(ans, 'mounts', 'primary-disk'), []),
-        Task(mkinitrd, A(ans, 'mounts', 'primary-disk', 'primary-partnum',
-                              'fcoe-interfaces'), []),
+        Task(mkinitrd, A(ans, 'mounts', 'primary-disk', 'primary-partnum'), []),
         Task(prepFallback, A(ans, 'mounts', 'primary-disk', 'primary-partnum'), []),
         Task(installBootLoader, A(ans, 'mounts', 'primary-disk',
                                   'boot-partnum', 'primary-partnum', 'target-boot-mode', 'branding',
@@ -838,13 +838,49 @@ def createDom0DiskFilesystems(install_type, disk, target_boot_mode, boot_partnum
             finally:
                 mount.unmount()
 
-def __mkinitrd(mounts, partition, package, kernel_version, fcoe_interfaces):
+def _findRootWwid(mounts):
+    proc_mounts_path = os.path.join(mounts["root"], "proc", "mounts")
+    with open(proc_mounts_path, "r", encoding="utf-8") as filep:
+        rootdev = None
+        for line in filep:
+            try:
+                blkdev, mount_point, _, _, _, _ =  line.split()
+                if blkdev == "rootfs": # Skip rootfs entry
+                    continue
+                if mount_point == "/":
+                    rootdev = blkdev
+                    break # we have a winner!
+            except ValueError:
+                logger.debug(f"Invalid line {line}")
+
+        if not rootdev:
+            raise RuntimeError("Does not found root device!")
+
+        rootpath = Path(os.path.join(mounts["root"], rootdev))
+        if not rootpath.is_block_device():
+            raise RuntimeError(f"root {rootpath} is not block device")
+        rv, out, err = util.runCmd2(["chroot", mounts["root"], "/usr/lib/udev/scsi_id",
+                               "-g", rootdev], with_stdout=True, with_stderr=True)
+        if rv != 0:
+            raise RuntimeError(f"Failed to whitelist {rootdev} with error: {err}")
+        return out
+
+def _generateBFS(mounts): #pylint: disable=invalid-name
+    rv = util.runCmd2(["chroot", mounts["root"],
+                  "/usr/sbin/mpathconf", "--enable", "--with_module", "y"])
+    if rv != 0:
+        raise RuntimeError("Failed to enable mpathconf")
+    logger.info("generate-bfs")
+    wwid = _findRootWwid(mounts)
+    rv = util.runCmd2(["chroot", mounts["root"],
+                  "/usr/sbin/multipath", "-a", wwid])
+    if rv != 0:
+        raise RuntimeError(f"Failed to add {wwid}")
+
+def __mkinitrd(mounts, partition, package, kernel_version):
     if isDeviceMapperNode(partition):
-        # Generate a valid multipath configuration for the initrd
-        action = 'generate-fcoe' if fcoe_interfaces else 'generate-bfs'
-        if util.runCmd2(['chroot', mounts['root'],
-                         '/usr/libexec/sm/sm-multipath', action]) != 0:
-            raise RuntimeError("Failed to generate multipath configuration")
+        # Generate a valid multipath configuration
+        _generateBFS(mounts)
 
     # Run dracut inside dom0 chroot
     output_file = os.path.join("/boot", "initrd-%s.img" % kernel_version)
@@ -946,7 +982,7 @@ def configureISCSI(mounts, primary_disk):
     if isDeviceMapperNode(primary_disk):
         adjustISCSITimeoutForFile("%s/etc/iscsi/iscsid.conf" % mounts['root'])
 
-def mkinitrd(mounts, primary_disk, primary_partnum, fcoe_interfaces):
+def mkinitrd(mounts, primary_disk, primary_partnum):
     xen_version = getXenVersion(mounts['root'])
     if xen_version is None:
         raise RuntimeError("Unable to determine Xen version.")
@@ -956,7 +992,7 @@ def mkinitrd(mounts, primary_disk, primary_partnum, fcoe_interfaces):
     partition = partitionDevice(primary_disk, primary_partnum)
 
 
-    __mkinitrd(mounts, partition, 'kernel-xen', xen_kernel_version, fcoe_interfaces)
+    __mkinitrd(mounts, partition, 'kernel-xen', xen_kernel_version)
 
 def prepFallback(mounts, primary_disk, primary_partnum):
     kernel_version =  getKernelVersion(mounts['root'])
